@@ -1,0 +1,112 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate:
+    name: Validate PR
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+          requireScope: false
+
+      - name: Check for breaking changes
+        run: |
+          if git log --format=%B origin/${{ github.base_ref }}..HEAD | grep -q "BREAKING CHANGE"; then
+            echo "⚠️ This PR contains breaking changes"
+            echo "breaking_change=true" >> $GITHUB_OUTPUT
+          fi
+
+  size-check:
+    name: Check Lambda Size
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache-dependency-path: aws/go.sum
+
+      - name: Build and check size
+        working-directory: ./aws
+        run: |
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bootstrap cmd/lambda/main.go
+          zip function.zip bootstrap
+          SIZE=$(stat -f%z function.zip 2>/dev/null || stat -c%s function.zip)
+          SIZE_MB=$((SIZE / 1024 / 1024))
+          echo "Lambda package size: ${SIZE_MB}MB"
+          
+          if [ $SIZE_MB -gt 50 ]; then
+            echo "❌ Lambda package is too large (${SIZE_MB}MB > 50MB)"
+            exit 1
+          elif [ $SIZE_MB -gt 30 ]; then
+            echo "⚠️ Lambda package is getting large (${SIZE_MB}MB)"
+          else
+            echo "✅ Lambda package size is acceptable (${SIZE_MB}MB)"
+          fi
+
+  comment-coverage:
+    name: Comment Coverage
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache-dependency-path: aws/go.sum
+
+      - name: Run tests with coverage
+        working-directory: ./aws
+        run: |
+          go test -coverprofile=coverage.out ./...
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}')
+          echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
+
+      - name: Comment PR
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            ## Test Coverage Report
+            
+            **Coverage:** ${{ env.COVERAGE }}
+            
+            <details>
+            <summary>View detailed coverage</summary>
+            
+            ```
+            $(cd aws && go tool cover -func=coverage.out)
+            ```
+            </details>
+          comment_tag: coverage

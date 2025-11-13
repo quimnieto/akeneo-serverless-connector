@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache-dependency-path: aws/go.sum
+
+      - name: Build AWS Lambda (amd64)
+        working-directory: ./aws
+        run: |
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bootstrap cmd/lambda/main.go
+          zip function-amd64.zip bootstrap
+          rm bootstrap
+
+      - name: Build AWS Lambda (arm64)
+        working-directory: ./aws
+        run: |
+          GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o bootstrap cmd/lambda/main.go
+          zip function-arm64.zip bootstrap
+          rm bootstrap
+
+      - name: Generate changelog
+        id: changelog
+        uses: metcalfc/changelog-generator@v4.3.1
+        with:
+          myToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: |
+            ## Changes
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## Installation
+            
+            Download the appropriate zip file for your architecture:
+            - `function-amd64.zip` for x86_64 architecture
+            - `function-arm64.zip` for ARM64 architecture
+            
+            ## Deployment
+            
+            ```bash
+            aws lambda update-function-code \
+              --function-name your-function-name \
+              --zip-file fileb://function-amd64.zip
+            ```
+          files: |
+            aws/function-amd64.zip
+            aws/function-arm64.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

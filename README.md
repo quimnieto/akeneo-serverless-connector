@@ -154,16 +154,28 @@ Consider these factors when selecting a cloud provider:
 - **Pros**: Simple deployment, Pub/Sub integration, competitive pricing
 - **Language**: TBD (Go, Node.js, or Python)
 
+## CI/CD
+
+This project includes comprehensive GitHub Actions workflows for:
+
+- **Continuous Integration**: Automated testing, linting, and security scanning
+- **Pull Request Checks**: PR validation, size checks, and coverage reports
+- **Automated Releases**: Multi-architecture builds with changelog generation
+- **Continuous Deployment**: Automated deployment to AWS Lambda
+- **Security**: CodeQL analysis and dependency updates via Dependabot
+
+See [CI/CD Documentation](.github/workflows/README.md) for detailed setup instructions.
+
 ## Development Roadmap
 
 - [x] AWS Lambda implementation (Go)
+- [x] CI/CD pipeline with GitHub Actions
 - [ ] Azure Functions implementation
 - [ ] Google Cloud Functions implementation
 - [ ] Dead letter queue support across all providers
 - [ ] Event replay mechanism
 - [ ] Monitoring and alerting templates
 - [ ] Terraform/IaC modules for each provider
-- [ ] CI/CD pipeline examples
 
 ## Contributing
 

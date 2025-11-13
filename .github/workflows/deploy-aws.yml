@@ -1,0 +1,109 @@
+name: Deploy to AWS
+
+# Commented out for now - uncomment when ready to enable automated deployments
+# on:
+#   push:
+#     branches: [ main ]
+#     paths:
+#       - 'aws/**'
+#       - '.github/workflows/deploy-aws.yml'
+#   workflow_dispatch:
+#     inputs:
+#       environment:
+#         description: 'Environment to deploy to'
+#         required: true
+#         default: 'staging'
+#         type: choice
+#         options:
+#           - staging
+#           - production
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  deploy:
+    name: Deploy Lambda to AWS
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache-dependency-path: aws/go.sum
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Build Lambda function
+        working-directory: ./aws
+        run: |
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bootstrap cmd/lambda/main.go
+          zip function.zip bootstrap
+
+      - name: Deploy to Lambda
+        working-directory: ./aws
+        env:
+          FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+        run: |
+          aws lambda update-function-code \
+            --function-name $FUNCTION_NAME \
+            --zip-file fileb://function.zip \
+            --publish
+
+      - name: Wait for Lambda update
+        env:
+          FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+        run: |
+          aws lambda wait function-updated \
+            --function-name $FUNCTION_NAME
+
+      - name: Update Lambda configuration
+        env:
+          FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+          SNS_TOPIC_ARN: ${{ secrets.SNS_TOPIC_ARN }}
+          LOG_LEVEL: ${{ secrets.LOG_LEVEL || 'INFO' }}
+        run: |
+          aws lambda update-function-configuration \
+            --function-name $FUNCTION_NAME \
+            --environment Variables="{SNS_TOPIC_ARN=$SNS_TOPIC_ARN,LOG_LEVEL=$LOG_LEVEL}"
+
+      - name: Create deployment tag
+        if: github.event.inputs.environment == 'production' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          TAG_NAME="aws-deploy-$(date +'%Y%m%d-%H%M%S')"
+          git tag -a $TAG_NAME -m "AWS deployment $TAG_NAME"
+          git push origin $TAG_NAME
+
+      - name: Notify deployment status
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            AWS Lambda deployment ${{ job.status }}
+            Environment: ${{ github.event.inputs.environment || 'staging' }}
+            Commit: ${{ github.sha }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

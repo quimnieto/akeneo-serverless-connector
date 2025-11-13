@@ -336,6 +336,14 @@ Consider setting up CloudWatch alarms for:
 - Enable Lambda reserved concurrency if needed
 - Use SNS message filtering to reduce downstream processing
 
+## CI/CD
+
+This project includes automated CI/CD pipelines. See the [CI/CD Documentation](../.github/workflows/README.md) for:
+- Automated testing and deployment
+- Release management
+- Security scanning
+- Dependency updates
+
 ## Back to Main Documentation
 
 See the [main README](../README.md) for multi-cloud overview and other implementations.

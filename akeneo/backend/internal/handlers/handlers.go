@@ -52,6 +52,15 @@ func (h *Handler) UpdateSubscriber(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Subscriber updated"})
 }
 
+func (h *Handler) DeleteSubscriber(c *gin.Context) {
+	subscriberID := c.Param("id")
+	if err := h.client.DeleteSubscriber(subscriberID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Subscriber deleted"})
+}
+
 func (h *Handler) GetSubscriptions(c *gin.Context) {
 	subscriptions, err := h.client.GetSubscriptions()
 	if err != nil {

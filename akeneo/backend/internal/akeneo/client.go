@@ -200,6 +200,11 @@ func (c *Client) UpdateSubscriber(subscriber map[string]interface{}) error {
 	return err
 }
 
+func (c *Client) DeleteSubscriber(subscriberID string) error {
+	_, err := c.eventPlatformRequest("DELETE", fmt.Sprintf("/api/v1/subscribers/%s", subscriberID), nil)
+	return err
+}
+
 func (c *Client) GetSubscriptions() ([]map[string]interface{}, error) {
 	data, err := c.eventPlatformRequest("GET", "/api/v1/subscriptions", nil)
 	if err != nil {

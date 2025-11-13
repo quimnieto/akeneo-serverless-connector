@@ -130,6 +130,18 @@ function App() {
     }
   };
 
+  const deleteSubscriber = async (id) => {
+    if (!window.confirm('Delete this subscriber?')) return;
+    setError('');
+    try {
+      const res = await fetch(`${API_URL}/subscriber/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(await res.text());
+      await loadData();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <div className="app">
       <h1>Akeneo Event Platform Config</h1>
@@ -173,6 +185,9 @@ function App() {
                 </div>
                 <div className="events">
                   Email: {sub.contact?.technical_email}
+                </div>
+                <div className="actions">
+                  <button onClick={() => deleteSubscriber(sub.id)}>Delete</button>
                 </div>
               </div>
             ))

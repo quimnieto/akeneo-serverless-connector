@@ -195,8 +195,8 @@ func (c *Client) CreateSubscriber(subscriber map[string]interface{}) error {
 	return nil
 }
 
-func (c *Client) UpdateSubscriber(subscriber map[string]interface{}) error {
-	_, err := c.eventPlatformRequest("PATCH", "/api/v1/subscribers", subscriber)
+func (c *Client) UpdateSubscriber(subscriberID string, subscriber map[string]interface{}) error {
+	_, err := c.eventPlatformRequest("PATCH", fmt.Sprintf("/api/v1/subscribers/%s", subscriberID), subscriber)
 	return err
 }
 

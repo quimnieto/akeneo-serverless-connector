@@ -10,9 +10,11 @@ function App() {
   const [error, setError] = useState('');
 
   const [subscriberForm, setSubscriberForm] = useState({ 
+    id: '',
     name: '', 
     contact: { technical_email: '' }
   });
+  const [isEditingSubscriber, setIsEditingSubscriber] = useState(false);
   const [subscriptionForm, setSubscriptionForm] = useState({ 
     subscriber_id: '',
     source: 'pim',
@@ -76,11 +78,47 @@ function App() {
       });
 
       if (!res.ok) throw new Error(await res.text());
-      setSubscriberForm({ name: '', contact: { technical_email: '' } });
+      setSubscriberForm({ id: '', name: '', contact: { technical_email: '' } });
       await loadData();
     } catch (err) {
       setError(err.message);
     }
+  };
+
+  const editSubscriber = (subscriber) => {
+    setSubscriberForm({
+      id: subscriber.id,
+      name: subscriber.name,
+      contact: { technical_email: subscriber.contact?.technical_email || '' }
+    });
+    setIsEditingSubscriber(true);
+  };
+
+  const handleEditSubscriberSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const res = await fetch(`${API_URL}/subscriber/${subscriberForm.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: subscriberForm.name,
+          contact: subscriberForm.contact
+        })
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+      setSubscriberForm({ id: '', name: '', contact: { technical_email: '' } });
+      setIsEditingSubscriber(false);
+      await loadData();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const cancelEditSubscriber = () => {
+    setSubscriberForm({ id: '', name: '', contact: { technical_email: '' } });
+    setIsEditingSubscriber(false);
   };
 
   const handleSubscriptionSubmit = async (e) => {
@@ -156,6 +194,39 @@ function App() {
 
       {error && <div className="error">{error}</div>}
 
+      {isEditingSubscriber && (
+        <div className="modal-overlay" onClick={cancelEditSubscriber}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Edit Subscriber</h2>
+            <form onSubmit={handleEditSubscriberSubmit}>
+              <input
+                type="text"
+                placeholder="Subscriber Name"
+                value={subscriberForm.name}
+                onChange={(e) => setSubscriberForm({ ...subscriberForm, name: e.target.value })}
+                required
+              />
+              <input
+                type="email"
+                placeholder="Technical Email"
+                value={subscriberForm.contact.technical_email}
+                onChange={(e) => setSubscriberForm({ 
+                  ...subscriberForm, 
+                  contact: { technical_email: e.target.value }
+                })}
+                required
+              />
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button type="submit">Update Subscriber</button>
+                <button type="button" onClick={cancelEditSubscriber} style={{ background: '#95a5a6' }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <section className="section">
         <h2>Subscribers</h2>
         <form onSubmit={handleSubscriberSubmit}>
@@ -187,14 +258,15 @@ function App() {
               <div key={sub.id} className="item">
                 <div>
                   <strong>{sub.name}</strong>
-                  <span style={{ color: '#7f8c8d', fontSize: '0.9em', marginLeft: '10px' }}>
-                    ID: {sub.id}
+                  <span className={sub.status === 'active' ? 'active' : 'inactive'} style={{ marginLeft: '10px' }}>
+                    {sub.status === 'active' ? 'Active' : 'Inactive'}
                   </span>
                 </div>
                 <div className="events">
                   Email: {sub.contact?.technical_email}
                 </div>
                 <div className="actions">
+                  <button onClick={() => editSubscriber(sub)}>Edit</button>
                   <button onClick={() => deleteSubscriber(sub.id)}>Delete</button>
                 </div>
               </div>

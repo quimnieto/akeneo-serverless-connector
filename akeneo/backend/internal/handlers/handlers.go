@@ -39,13 +39,14 @@ func (h *Handler) CreateSubscriber(c *gin.Context) {
 }
 
 func (h *Handler) UpdateSubscriber(c *gin.Context) {
+	subscriberID := c.Param("id")
 	var req map[string]interface{}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := h.client.UpdateSubscriber(req); err != nil {
+	if err := h.client.UpdateSubscriber(subscriberID, req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

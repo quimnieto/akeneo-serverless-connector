@@ -50,7 +50,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-report
           path: aws/coverage.html
@@ -98,7 +98,7 @@ jobs:
           zip function.zip bootstrap
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: lambda-function
           path: aws/function.zip

@@ -17,11 +17,12 @@ type Config struct {
 }
 
 type AkeneoConfig struct {
-	BaseURL      string
-	ClientID     string
-	ClientSecret string
-	Username     string
-	Password     string
+	BaseURL          string // PIM URL
+	EventPlatformURL string // Event Platform URL
+	ClientID         string
+	ClientSecret     string
+	Username         string
+	Password         string
 }
 
 type ServerConfig struct {
@@ -45,11 +46,12 @@ func Load() (*Config, error) {
 
 	config := &Config{
 		Akeneo: AkeneoConfig{
-			BaseURL:      v.GetString("akeneo.base_url"),
-			ClientID:     v.GetString("akeneo.client_id"),
-			ClientSecret: v.GetString("akeneo.client_secret"),
-			Username:     v.GetString("akeneo.username"),
-			Password:     v.GetString("akeneo.password"),
+			BaseURL:          v.GetString("akeneo.base_url"),
+			EventPlatformURL: v.GetString("akeneo.event_platform_url"),
+			ClientID:         v.GetString("akeneo.client_id"),
+			ClientSecret:     v.GetString("akeneo.client_secret"),
+			Username:         v.GetString("akeneo.username"),
+			Password:         v.GetString("akeneo.password"),
 		},
 		Server: ServerConfig{
 			Port:    v.GetString("server.port"),

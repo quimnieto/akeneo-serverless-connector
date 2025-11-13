@@ -11,26 +11,28 @@ import (
 )
 
 type Client struct {
-	BaseURL      string
-	ClientID     string
-	ClientSecret string
-	Username     string
-	Password     string
-	accessToken  string
-	subscriberID string
+	BaseURL          string // PIM URL for authentication
+	EventPlatformURL string // Event Platform URL
+	ClientID         string
+	ClientSecret     string
+	Username         string
+	Password         string
+	accessToken      string
+	subscriberID     string
 }
 
 type tokenResponse struct {
 	AccessToken string `json:"access_token"`
 }
 
-func NewClient(baseURL, clientID, clientSecret, username, password string) *Client {
+func NewClient(baseURL, eventPlatformURL, clientID, clientSecret, username, password string) *Client {
 	return &Client{
-		BaseURL:      strings.TrimSuffix(baseURL, "/"),
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		Username:     username,
-		Password:     password,
+		BaseURL:          strings.TrimSuffix(baseURL, "/"),
+		EventPlatformURL: strings.TrimSuffix(eventPlatformURL, "/"),
+		ClientID:         clientID,
+		ClientSecret:     clientSecret,
+		Username:         username,
+		Password:         password,
 	}
 }
 
@@ -126,7 +128,7 @@ func (c *Client) eventPlatformRequest(method, path string, body interface{}) ([]
 		reqBody = bytes.NewBuffer(jsonData)
 	}
 
-	req, err := http.NewRequest(method, c.BaseURL+path, reqBody)
+	req, err := http.NewRequest(method, c.EventPlatformURL+path, reqBody)
 	if err != nil {
 		return nil, err
 	}
@@ -165,14 +167,14 @@ func (c *Client) GetSubscriber() ([]map[string]interface{}, error) {
 	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, err
 	}
-	
+
 	// Store first subscriber ID for later use if available
 	if len(result) > 0 {
 		if id, ok := result[0]["id"].(string); ok {
 			c.subscriberID = id
 		}
 	}
-	
+
 	return result, nil
 }
 
@@ -181,7 +183,7 @@ func (c *Client) CreateSubscriber(subscriber map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Extract and store subscriber ID from response
 	var result map[string]interface{}
 	if err := json.Unmarshal(data, &result); err == nil {
@@ -189,7 +191,7 @@ func (c *Client) CreateSubscriber(subscriber map[string]interface{}) error {
 			c.subscriberID = id
 		}
 	}
-	
+
 	return nil
 }
 
@@ -220,10 +222,10 @@ func (c *Client) CreateSubscription(subscription map[string]interface{}) error {
 			return fmt.Errorf("failed to get subscriber ID: %w", err)
 		}
 	}
-	
+
 	// Add subscriber_id to the subscription payload
 	subscription["subscriber_id"] = c.subscriberID
-	
+
 	_, err := c.eventPlatformRequest("POST", "/api/v1/subscriptions", subscription)
 	return err
 }

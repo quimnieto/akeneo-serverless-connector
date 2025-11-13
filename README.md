@@ -10,7 +10,7 @@ This project provides cloud-native, serverless solutions for handling Akeneo PIM
 
 | Provider | Status | Documentation |
 |----------|--------|---------------|
-| AWS | ✅ Production Ready | [AWS Documentation](./aws/README.md) |
+| AWS | 🚧 WIP | [AWS Documentation](./aws/README.md) |
 | Azure | 🚧 Coming Soon | [Azure Documentation](./azure/README.md) |
 | Google Cloud | 🚧 Coming Soon | [GCP Documentation](./google_cloud/README.md) |
 

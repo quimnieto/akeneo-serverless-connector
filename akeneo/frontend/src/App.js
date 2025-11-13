@@ -28,6 +28,8 @@ function App() {
       }
     }
   });
+  const [isEditingSubscription, setIsEditingSubscription] = useState(false);
+  const [editingSubscription, setEditingSubscription] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -176,6 +178,61 @@ function App() {
     }
   };
 
+  const editSubscription = (subscription) => {
+    setEditingSubscription({
+      id: subscription.id,
+      subscriber_id: subscription.subscriber_id,
+      events: subscription.events || [],
+      type: subscription.type || 'https',
+      config: subscription.config // Keep the full config including secrets
+    });
+    setIsEditingSubscription(true);
+  };
+
+  const handleEditSubscriptionSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (editingSubscription.events.length === 0) {
+      setError('Please select at least one event type');
+      return;
+    }
+    try {
+      const payload = {
+        subscriber_id: editingSubscription.subscriber_id, // Include subscriber_id
+        events: editingSubscription.events,
+        type: editingSubscription.type, // Include type (required with config)
+        config: editingSubscription.config // Include full config with secrets
+      };
+
+      const res = await fetch(`${API_URL}/subscriptions/${editingSubscription.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+      setEditingSubscription(null);
+      setIsEditingSubscription(false);
+      await loadData();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const cancelEditSubscription = () => {
+    setEditingSubscription(null);
+    setIsEditingSubscription(false);
+  };
+
+  const toggleEditEvent = (event) => {
+    setEditingSubscription(prev => ({
+      ...prev,
+      events: prev.events.includes(event)
+        ? prev.events.filter(e => e !== event)
+        : [...prev.events, event]
+    }));
+  };
+
   const deleteSubscriber = async (id) => {
     if (!window.confirm('Delete this subscriber?')) return;
     setError('');
@@ -227,6 +284,47 @@ function App() {
         </div>
       )}
 
+      {isEditingSubscription && editingSubscription && (
+        <div className="modal-overlay" onClick={cancelEditSubscription}>
+          <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
+            <h2>Edit Subscription</h2>
+            <form onSubmit={handleEditSubscriptionSubmit}>
+              <input
+                type="url"
+                placeholder="Webhook URL"
+                value={editingSubscription.config.url}
+                onChange={(e) => setEditingSubscription({ 
+                  ...editingSubscription, 
+                  config: { ...editingSubscription.config, url: e.target.value }
+                })}
+                required
+              />
+              <div className="event-selector">
+                <label>Select Events ({editingSubscription.events.length} selected):</label>
+                <div className="event-list">
+                  {eventTypes.map(event => (
+                    <label key={event} className="event-item">
+                      <input
+                        type="checkbox"
+                        checked={editingSubscription.events.includes(event)}
+                        onChange={() => toggleEditEvent(event)}
+                      />
+                      {event}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button type="submit">Update Subscription</button>
+                <button type="button" onClick={cancelEditSubscription} style={{ background: '#95a5a6' }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <section className="section">
         <h2>Subscribers</h2>
         <form onSubmit={handleSubscriberSubmit}>
@@ -263,7 +361,10 @@ function App() {
                   </span>
                 </div>
                 <div className="events">
-                  Email: {sub.contact?.technical_email}
+                  <div>Email: {sub.contact?.technical_email}</div>
+                  <div style={{ color: '#95a5a6', fontSize: '0.85em', marginTop: '5px' }}>
+                    ID: {sub.id}
+                  </div>
                 </div>
                 <div className="actions">
                   <button onClick={() => editSubscriber(sub)}>Edit</button>
@@ -362,6 +463,7 @@ function App() {
                 </div>
                 <div className="events">{sub.events?.join(', ')}</div>
                 <div className="actions">
+                  <button onClick={() => editSubscription(sub)}>Edit</button>
                   <button onClick={() => deleteSubscription(sub.id)}>Delete</button>
                 </div>
               </div>

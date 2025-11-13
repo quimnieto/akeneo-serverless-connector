@@ -263,15 +263,16 @@ func (c *Client) CreateSubscription(subscription map[string]interface{}) error {
 }
 
 func (c *Client) UpdateSubscription(subscriptionID string, subscription map[string]interface{}) error {
-	// Ensure we have a subscriber ID
-	if c.subscriberID == "" {
-		_, err := c.GetSubscriber()
-		if err != nil {
-			return fmt.Errorf("failed to get subscriber ID: %w", err)
-		}
+	// Get subscriber ID from the subscription payload
+	subscriberID, ok := subscription["subscriber_id"].(string)
+	if !ok || subscriberID == "" {
+		return fmt.Errorf("subscriber_id is required in subscription payload")
 	}
 
-	_, err := c.eventPlatformRequest("PATCH", fmt.Sprintf("/api/v1/subscribers/%s/subscriptions/%s", c.subscriberID, subscriptionID), subscription)
+	// Remove subscriber_id from payload as it's in the URL
+	delete(subscription, "subscriber_id")
+
+	_, err := c.eventPlatformRequest("PATCH", fmt.Sprintf("/api/v1/subscribers/%s/subscriptions/%s", subscriberID, subscriptionID), subscription)
 	return err
 }
 

@@ -3,49 +3,49 @@ package akeneo
 // EventTypes contains all available Akeneo event types
 var EventTypes = []string{
 	// Product events
-	"product.created",
-	"product.updated",
-	"product.removed",
+	"com.akeneo.pim.v1.product.created",
+	"com.akeneo.pim.v1.product.updated",
+	"com.akeneo.pim.v1.product.deleted",
 
 	// Product model events
-	"product_model.created",
-	"product_model.updated",
-	"product_model.removed",
+	"com.akeneo.pim.v1.product-model.created",
+	"com.akeneo.pim.v1.product-model.updated",
+	"com.akeneo.pim.v1.product-model.deleted",
 
 	// Category events
-	"category.created",
-	"category.updated",
-	"category.removed",
+	"com.akeneo.pim.v1.category.created",
+	"com.akeneo.pim.v1.category.updated",
+	"com.akeneo.pim.v1.category.deleted",
 
 	// Attribute events
-	"attribute.created",
-	"attribute.updated",
-	"attribute.removed",
+	"com.akeneo.pim.v1.attribute.created",
+	"com.akeneo.pim.v1.attribute.updated",
+	"com.akeneo.pim.v1.attribute.deleted",
 
 	// Attribute option events
-	"attribute_option.created",
-	"attribute_option.updated",
-	"attribute_option.removed",
+	"com.akeneo.pim.v1.attribute-option.created",
+	"com.akeneo.pim.v1.attribute-option.updated",
+	"com.akeneo.pim.v1.attribute-option.deleted",
 
 	// Attribute group events
-	"attribute_group.created",
-	"attribute_group.updated",
-	"attribute_group.removed",
+	"com.akeneo.pim.v1.attribute-group.created",
+	"com.akeneo.pim.v1.attribute-group.updated",
+	"com.akeneo.pim.v1.attribute-group.deleted",
 
 	// Family events
-	"family.created",
-	"family.updated",
-	"family.removed",
+	"com.akeneo.pim.v1.family.created",
+	"com.akeneo.pim.v1.family.updated",
+	"com.akeneo.pim.v1.family.deleted",
 
 	// Family variant events
-	"family_variant.created",
-	"family_variant.updated",
-	"family_variant.removed",
+	"com.akeneo.pim.v1.family-variant.created",
+	"com.akeneo.pim.v1.family-variant.updated",
+	"com.akeneo.pim.v1.family-variant.deleted",
 
 	// Reference entity record events
-	"reference_entity_record.created",
-	"reference_entity_record.updated",
-	"reference_entity_record.removed",
+	"com.akeneo.pim.v1.reference-entity-record.created",
+	"com.akeneo.pim.v1.reference-entity-record.updated",
+	"com.akeneo.pim.v1.reference-entity-record.deleted",
 
 	// Delta events (only changes)
 	"com.akeneo.pim.v1.product.updated.delta",

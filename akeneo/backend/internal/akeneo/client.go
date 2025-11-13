@@ -206,43 +206,97 @@ func (c *Client) DeleteSubscriber(subscriberID string) error {
 }
 
 func (c *Client) GetSubscriptions() ([]map[string]interface{}, error) {
-	data, err := c.eventPlatformRequest("GET", "/api/v1/subscriptions", nil)
+	// Get all subscribers first
+	subscribers, err := c.GetSubscriber()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get subscribers: %w", err)
 	}
 
-	var result []map[string]interface{}
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, err
+	// Collect all subscriptions from all subscribers
+	var allSubscriptions []map[string]interface{}
+	for _, subscriber := range subscribers {
+		subscriberID, ok := subscriber["id"].(string)
+		if !ok {
+			continue
+		}
+
+		data, err := c.eventPlatformRequest("GET", fmt.Sprintf("/api/v1/subscribers/%s/subscriptions", subscriberID), nil)
+		if err != nil {
+			// Skip if this subscriber has no subscriptions or error
+			continue
+		}
+
+		var subscriptions []map[string]interface{}
+		if err := json.Unmarshal(data, &subscriptions); err != nil {
+			continue
+		}
+
+		// Add subscriber info to each subscription
+		for i := range subscriptions {
+			subscriptions[i]["subscriber_id"] = subscriberID
+			subscriptions[i]["subscriber_name"] = subscriber["name"]
+		}
+
+		allSubscriptions = append(allSubscriptions, subscriptions...)
 	}
-	return result, nil
+
+	return allSubscriptions, nil
 }
 
 func (c *Client) CreateSubscription(subscription map[string]interface{}) error {
+	// Get subscriber ID from the subscription payload
+	subscriberID, ok := subscription["subscriber_id"].(string)
+	if !ok || subscriberID == "" {
+		return fmt.Errorf("subscriber_id is required")
+	}
+	
+	// Remove subscriber_id from payload as it's in the URL
+	delete(subscription, "subscriber_id")
+	
+	// Set subject to PIM URL if not provided
+	if subscription["subject"] == nil || subscription["subject"] == "" {
+		subscription["subject"] = c.BaseURL
+	}
+	
+	_, err := c.eventPlatformRequest("POST", fmt.Sprintf("/api/v1/subscribers/%s/subscriptions", subscriberID), subscription)
+	return err
+}
+
+func (c *Client) UpdateSubscription(subscriptionID string, subscription map[string]interface{}) error {
 	// Ensure we have a subscriber ID
 	if c.subscriberID == "" {
-		// Try to get subscriber first
 		_, err := c.GetSubscriber()
 		if err != nil {
 			return fmt.Errorf("failed to get subscriber ID: %w", err)
 		}
 	}
 
-	// Add subscriber_id to the subscription payload
-	subscription["subscriber_id"] = c.subscriberID
-
-	_, err := c.eventPlatformRequest("POST", "/api/v1/subscriptions", subscription)
+	_, err := c.eventPlatformRequest("PATCH", fmt.Sprintf("/api/v1/subscribers/%s/subscriptions/%s", c.subscriberID, subscriptionID), subscription)
 	return err
 }
 
-func (c *Client) UpdateSubscription(connectionCode string, subscription map[string]interface{}) error {
-	_, err := c.eventPlatformRequest("PATCH", fmt.Sprintf("/api/v1/subscriptions/%s", connectionCode), subscription)
-	return err
-}
+func (c *Client) DeleteSubscription(subscriptionID string) error {
+	// We need to find which subscriber owns this subscription
+	// For now, we'll try to get all subscribers and find the right one
+	subscribers, err := c.GetSubscriber()
+	if err != nil {
+		return fmt.Errorf("failed to get subscribers: %w", err)
+	}
 
-func (c *Client) DeleteSubscription(connectionCode string) error {
-	_, err := c.eventPlatformRequest("DELETE", fmt.Sprintf("/api/v1/subscriptions/%s", connectionCode), nil)
-	return err
+	// Try to delete from each subscriber until we find the right one
+	for _, subscriber := range subscribers {
+		subscriberID, ok := subscriber["id"].(string)
+		if !ok {
+			continue
+		}
+
+		_, err := c.eventPlatformRequest("DELETE", fmt.Sprintf("/api/v1/subscribers/%s/subscriptions/%s", subscriberID, subscriptionID), nil)
+		if err == nil {
+			return nil // Successfully deleted
+		}
+	}
+
+	return fmt.Errorf("subscription not found in any subscriber")
 }
 
 func (c *Client) GetEventTypes() []string {

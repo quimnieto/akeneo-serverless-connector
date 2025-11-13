@@ -13,7 +13,19 @@ function App() {
     name: '', 
     contact: { technical_email: '' }
   });
-  const [subscriptionForm, setSubscriptionForm] = useState({ connection_code: '', events: [], active: true });
+  const [subscriptionForm, setSubscriptionForm] = useState({ 
+    subscriber_id: '',
+    source: 'pim',
+    events: [],
+    type: 'https',
+    config: {
+      url: '',
+      secret: {
+        primary: '',
+        secondary: ''
+      }
+    }
+  });
 
   useEffect(() => {
     loadData();
@@ -86,7 +98,19 @@ function App() {
       });
 
       if (!res.ok) throw new Error(await res.text());
-      setSubscriptionForm({ connection_code: '', events: [], active: true });
+      setSubscriptionForm({ 
+        subscriber_id: '',
+        source: 'pim',
+        events: [],
+        type: 'https',
+        config: {
+          url: '',
+          secret: {
+            primary: '',
+            secondary: ''
+          }
+        }
+      });
       await loadData();
     } catch (err) {
       setError(err.message);
@@ -102,27 +126,11 @@ function App() {
     }));
   };
 
-  const toggleSubscription = async (code, currentActive) => {
-    setError('');
-    try {
-      const res = await fetch(`${API_URL}/subscriptions/${code}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active: !currentActive })
-      });
-
-      if (!res.ok) throw new Error(await res.text());
-      await loadData();
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  const deleteSubscription = async (code) => {
+  const deleteSubscription = async (id) => {
     if (!window.confirm('Delete this subscription?')) return;
     setError('');
     try {
-      const res = await fetch(`${API_URL}/subscriptions/${code}`, { method: 'DELETE' });
+      const res = await fetch(`${API_URL}/subscriptions/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(await res.text());
       await loadData();
     } catch (err) {
@@ -198,12 +206,53 @@ function App() {
       <section className="section">
         <h2>Subscriptions</h2>
         <form onSubmit={handleSubscriptionSubmit}>
+          <select
+            value={subscriptionForm.subscriber_id}
+            onChange={(e) => setSubscriptionForm({ ...subscriptionForm, subscriber_id: e.target.value })}
+            required
+            style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
+          >
+            <option value="">Select Subscriber</option>
+            {subscribers.map((sub) => (
+              <option key={sub.id} value={sub.id}>
+                {sub.name} ({sub.contact?.technical_email})
+              </option>
+            ))}
+          </select>
+          <input
+            type="url"
+            placeholder="Webhook URL"
+            value={subscriptionForm.config.url}
+            onChange={(e) => setSubscriptionForm({ 
+              ...subscriptionForm, 
+              config: { ...subscriptionForm.config, url: e.target.value }
+            })}
+            required
+          />
           <input
             type="text"
-            placeholder="Connection Code"
-            value={subscriptionForm.connection_code}
-            onChange={(e) => setSubscriptionForm({ ...subscriptionForm, connection_code: e.target.value })}
+            placeholder="Primary Secret Key"
+            value={subscriptionForm.config.secret.primary}
+            onChange={(e) => setSubscriptionForm({ 
+              ...subscriptionForm, 
+              config: { 
+                ...subscriptionForm.config, 
+                secret: { ...subscriptionForm.config.secret, primary: e.target.value }
+              }
+            })}
             required
+          />
+          <input
+            type="text"
+            placeholder="Secondary Secret Key (optional)"
+            value={subscriptionForm.config.secret.secondary}
+            onChange={(e) => setSubscriptionForm({ 
+              ...subscriptionForm, 
+              config: { 
+                ...subscriptionForm.config, 
+                secret: { ...subscriptionForm.config.secret, secondary: e.target.value }
+              }
+            })}
           />
           <div className="event-selector">
             <label>Select Events ({subscriptionForm.events.length} selected):</label>
@@ -224,14 +273,6 @@ function App() {
               )}
             </div>
           </div>
-          <label>
-            <input
-              type="checkbox"
-              checked={subscriptionForm.active}
-              onChange={(e) => setSubscriptionForm({ ...subscriptionForm, active: e.target.checked })}
-            />
-            Active
-          </label>
           <button type="submit">Create Subscription</button>
         </form>
 
@@ -240,19 +281,16 @@ function App() {
             <p>No subscriptions</p>
           ) : (
             subscriptions.map((sub) => (
-              <div key={sub.connection_code} className="item">
+              <div key={sub.id} className="item">
                 <div>
-                  <strong>{sub.connection_code}</strong>
-                  <span className={sub.active ? 'active' : 'inactive'}>
-                    {sub.active ? 'Active' : 'Inactive'}
+                  <strong>{sub.config?.url || 'Webhook'}</strong>
+                  <span style={{ color: '#7f8c8d', fontSize: '0.9em', marginLeft: '10px' }}>
+                    Subscriber: {sub.subscriber_name}
                   </span>
                 </div>
                 <div className="events">{sub.events?.join(', ')}</div>
                 <div className="actions">
-                  <button onClick={() => toggleSubscription(sub.connection_code, sub.active)}>
-                    {sub.active ? 'Deactivate' : 'Activate'}
-                  </button>
-                  <button onClick={() => deleteSubscription(sub.connection_code)}>Delete</button>
+                  <button onClick={() => deleteSubscription(sub.id)}>Delete</button>
                 </div>
               </div>
             ))

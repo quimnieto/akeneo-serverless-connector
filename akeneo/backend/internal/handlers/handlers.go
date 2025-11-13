@@ -85,14 +85,14 @@ func (h *Handler) CreateSubscription(c *gin.Context) {
 }
 
 func (h *Handler) UpdateSubscription(c *gin.Context) {
-	connectionCode := c.Param("code")
+	subscriptionID := c.Param("id")
 	var req map[string]interface{}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := h.client.UpdateSubscription(connectionCode, req); err != nil {
+	if err := h.client.UpdateSubscription(subscriptionID, req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -100,8 +100,8 @@ func (h *Handler) UpdateSubscription(c *gin.Context) {
 }
 
 func (h *Handler) DeleteSubscription(c *gin.Context) {
-	connectionCode := c.Param("code")
-	if err := h.client.DeleteSubscription(connectionCode); err != nil {
+	subscriptionID := c.Param("id")
+	if err := h.client.DeleteSubscription(subscriptionID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

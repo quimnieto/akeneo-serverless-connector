@@ -15,7 +15,6 @@
 go.work
 
 # Build artifacts
-bootstrap
 *.zip
 dist/
 build/

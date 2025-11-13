@@ -1,0 +1,12 @@
+{
+  "name": "aws",
+  "version": "1.0.0",
+  "description": "Prerequisites: - Node.js (for Serverless Framework) - Docker (for LocalStack) - AWS CLI Local (`awslocal`) recommended: `pip install awscli-local`",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

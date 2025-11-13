@@ -4,12 +4,15 @@ import './App.css';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
 
 function App() {
-  const [subscriber, setSubscriber] = useState(null);
+  const [subscribers, setSubscribers] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [eventTypes, setEventTypes] = useState([]);
   const [error, setError] = useState('');
 
-  const [subscriberForm, setSubscriberForm] = useState({ url: '', active: true });
+  const [subscriberForm, setSubscriberForm] = useState({ 
+    name: '', 
+    contact: { technical_email: '' }
+  });
   const [subscriptionForm, setSubscriptionForm] = useState({ connection_code: '', events: [], active: true });
 
   useEffect(() => {
@@ -30,7 +33,6 @@ function App() {
   };
 
   const loadData = async () => {
-    setLoading(true);
     try {
       const [subRes, subsRes] = await Promise.all([
         fetch(`${API_URL}/subscriber`).catch(() => ({ ok: false })),
@@ -39,8 +41,7 @@ function App() {
 
       if (subRes.ok) {
         const subData = await subRes.json();
-        setSubscriber(subData);
-        setSubscriberForm({ url: subData.url || '', active: subData.active ?? true });
+        setSubscribers(subData || []);
       }
 
       if (subsRes.ok) {
@@ -50,21 +51,20 @@ function App() {
     } catch (err) {
       setError(err.message);
     }
-    setLoading(false);
   };
 
   const handleSubscriberSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      const method = subscriber ? 'PATCH' : 'POST';
       const res = await fetch(`${API_URL}/subscriber`, {
-        method,
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(subscriberForm)
       });
 
       if (!res.ok) throw new Error(await res.text());
+      setSubscriberForm({ name: '', contact: { technical_email: '' } });
       await loadData();
     } catch (err) {
       setError(err.message);
@@ -137,31 +137,47 @@ function App() {
       {error && <div className="error">{error}</div>}
 
       <section className="section">
-        <h2>Subscriber</h2>
+        <h2>Subscribers</h2>
         <form onSubmit={handleSubscriberSubmit}>
           <input
-            type="url"
-            placeholder="Webhook URL"
-            value={subscriberForm.url}
-            onChange={(e) => setSubscriberForm({ ...subscriberForm, url: e.target.value })}
+            type="text"
+            placeholder="Subscriber Name"
+            value={subscriberForm.name}
+            onChange={(e) => setSubscriberForm({ ...subscriberForm, name: e.target.value })}
             required
           />
-          <label>
-            <input
-              type="checkbox"
-              checked={subscriberForm.active}
-              onChange={(e) => setSubscriberForm({ ...subscriberForm, active: e.target.checked })}
-            />
-            Active
-          </label>
-          <button type="submit">{subscriber ? 'Update' : 'Create'} Subscriber</button>
+          <input
+            type="email"
+            placeholder="Technical Email"
+            value={subscriberForm.contact.technical_email}
+            onChange={(e) => setSubscriberForm({ 
+              ...subscriberForm, 
+              contact: { technical_email: e.target.value }
+            })}
+            required
+          />
+          <button type="submit">Create Subscriber</button>
         </form>
-        {subscriber && (
-          <div className="info">
-            <p><strong>URL:</strong> {subscriber.url}</p>
-            <p><strong>Status:</strong> {subscriber.active ? 'Active' : 'Inactive'}</p>
-          </div>
-        )}
+
+        <div className="list">
+          {subscribers.length === 0 ? (
+            <p>No subscribers</p>
+          ) : (
+            subscribers.map((sub) => (
+              <div key={sub.id} className="item">
+                <div>
+                  <strong>{sub.name}</strong>
+                  <span style={{ color: '#7f8c8d', fontSize: '0.9em', marginLeft: '10px' }}>
+                    ID: {sub.id}
+                  </span>
+                </div>
+                <div className="events">
+                  Email: {sub.contact?.technical_email}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </section>
 
       <section className="section">

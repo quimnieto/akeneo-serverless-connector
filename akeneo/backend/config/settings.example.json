@@ -1,6 +1,6 @@
 {
   "akeneo": {
-    "base_url": "https://your-akeneo-instance.com",
+    "base_url": "https://event.prd.sdk.akeneo.cloud",
     "client_id": "your_client_id",
     "client_secret": "your_client_secret",
     "username": "your_username",

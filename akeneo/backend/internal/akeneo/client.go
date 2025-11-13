@@ -17,6 +17,7 @@ type Client struct {
 	Username     string
 	Password     string
 	accessToken  string
+	subscriberID string
 }
 
 type tokenResponse struct {
@@ -109,31 +110,96 @@ func (c *Client) request(method, path string, body interface{}) ([]byte, error) 
 	return respBody, nil
 }
 
-func (c *Client) GetSubscriber() (map[string]interface{}, error) {
-	data, err := c.request("GET", "/api/v1/subscribers", nil)
+func (c *Client) eventPlatformRequest(method, path string, body interface{}) ([]byte, error) {
+	if c.accessToken == "" {
+		if err := c.authenticate(); err != nil {
+			return nil, err
+		}
+	}
+
+	var reqBody io.Reader
+	if body != nil {
+		jsonData, err := json.Marshal(body)
+		if err != nil {
+			return nil, err
+		}
+		reqBody = bytes.NewBuffer(jsonData)
+	}
+
+	req, err := http.NewRequest(method, c.BaseURL+path, reqBody)
 	if err != nil {
 		return nil, err
 	}
 
-	var result map[string]interface{}
+	// Event Platform requires special headers as per documentation
+	req.Header.Set("X-PIM-URL", c.BaseURL)
+	req.Header.Set("X-PIM-TOKEN", c.accessToken)
+	req.Header.Set("X-PIM-CLIENT-ID", c.ClientID)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("Event Platform API error %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	return respBody, nil
+}
+
+func (c *Client) GetSubscriber() ([]map[string]interface{}, error) {
+	data, err := c.eventPlatformRequest("GET", "/api/v1/subscribers", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]interface{}
 	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, err
 	}
+	
+	// Store first subscriber ID for later use if available
+	if len(result) > 0 {
+		if id, ok := result[0]["id"].(string); ok {
+			c.subscriberID = id
+		}
+	}
+	
 	return result, nil
 }
 
 func (c *Client) CreateSubscriber(subscriber map[string]interface{}) error {
-	_, err := c.request("POST", "/api/v1/subscribers", subscriber)
-	return err
+	data, err := c.eventPlatformRequest("POST", "/api/v1/subscribers", subscriber)
+	if err != nil {
+		return err
+	}
+	
+	// Extract and store subscriber ID from response
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err == nil {
+		if id, ok := result["id"].(string); ok {
+			c.subscriberID = id
+		}
+	}
+	
+	return nil
 }
 
 func (c *Client) UpdateSubscriber(subscriber map[string]interface{}) error {
-	_, err := c.request("PATCH", "/api/v1/subscribers", subscriber)
+	_, err := c.eventPlatformRequest("PATCH", "/api/v1/subscribers", subscriber)
 	return err
 }
 
 func (c *Client) GetSubscriptions() ([]map[string]interface{}, error) {
-	data, err := c.request("GET", "/api/v1/subscriptions", nil)
+	data, err := c.eventPlatformRequest("GET", "/api/v1/subscriptions", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -146,17 +212,29 @@ func (c *Client) GetSubscriptions() ([]map[string]interface{}, error) {
 }
 
 func (c *Client) CreateSubscription(subscription map[string]interface{}) error {
-	_, err := c.request("POST", "/api/v1/subscriptions", subscription)
+	// Ensure we have a subscriber ID
+	if c.subscriberID == "" {
+		// Try to get subscriber first
+		_, err := c.GetSubscriber()
+		if err != nil {
+			return fmt.Errorf("failed to get subscriber ID: %w", err)
+		}
+	}
+	
+	// Add subscriber_id to the subscription payload
+	subscription["subscriber_id"] = c.subscriberID
+	
+	_, err := c.eventPlatformRequest("POST", "/api/v1/subscriptions", subscription)
 	return err
 }
 
 func (c *Client) UpdateSubscription(connectionCode string, subscription map[string]interface{}) error {
-	_, err := c.request("PATCH", fmt.Sprintf("/api/v1/subscriptions/%s", connectionCode), subscription)
+	_, err := c.eventPlatformRequest("PATCH", fmt.Sprintf("/api/v1/subscriptions/%s", connectionCode), subscription)
 	return err
 }
 
 func (c *Client) DeleteSubscription(connectionCode string) error {
-	_, err := c.request("DELETE", fmt.Sprintf("/api/v1/subscriptions/%s", connectionCode), nil)
+	_, err := c.eventPlatformRequest("DELETE", fmt.Sprintf("/api/v1/subscriptions/%s", connectionCode), nil)
 	return err
 }
 

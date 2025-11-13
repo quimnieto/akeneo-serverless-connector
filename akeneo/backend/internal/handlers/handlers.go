@@ -16,12 +16,12 @@ func NewHandler(client *akeneo.Client) *Handler {
 }
 
 func (h *Handler) GetSubscriber(c *gin.Context) {
-	subscriber, err := h.client.GetSubscriber()
+	subscribers, err := h.client.GetSubscriber()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, subscriber)
+	c.JSON(http.StatusOK, subscribers)
 }
 
 func (h *Handler) CreateSubscriber(c *gin.Context) {

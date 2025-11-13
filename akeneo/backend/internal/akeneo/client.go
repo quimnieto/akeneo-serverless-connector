@@ -110,7 +110,7 @@ func (c *Client) request(method, path string, body interface{}) ([]byte, error) 
 }
 
 func (c *Client) GetSubscriber() (map[string]interface{}, error) {
-	data, err := c.request("GET", "/api/rest/v1/events-api/subscriber", nil)
+	data, err := c.request("GET", "/api/v1/subscribers", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -123,17 +123,17 @@ func (c *Client) GetSubscriber() (map[string]interface{}, error) {
 }
 
 func (c *Client) CreateSubscriber(subscriber map[string]interface{}) error {
-	_, err := c.request("POST", "/api/rest/v1/events-api/subscriber", subscriber)
+	_, err := c.request("POST", "/api/v1/subscribers", subscriber)
 	return err
 }
 
 func (c *Client) UpdateSubscriber(subscriber map[string]interface{}) error {
-	_, err := c.request("PATCH", "/api/rest/v1/events-api/subscriber", subscriber)
+	_, err := c.request("PATCH", "/api/v1/subscribers", subscriber)
 	return err
 }
 
 func (c *Client) GetSubscriptions() ([]map[string]interface{}, error) {
-	data, err := c.request("GET", "/api/rest/v1/events-api/subscriptions", nil)
+	data, err := c.request("GET", "/api/v1/subscriptions", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -146,29 +146,20 @@ func (c *Client) GetSubscriptions() ([]map[string]interface{}, error) {
 }
 
 func (c *Client) CreateSubscription(subscription map[string]interface{}) error {
-	_, err := c.request("POST", "/api/rest/v1/events-api/subscriptions", subscription)
+	_, err := c.request("POST", "/api/v1/subscriptions", subscription)
 	return err
 }
 
 func (c *Client) UpdateSubscription(connectionCode string, subscription map[string]interface{}) error {
-	_, err := c.request("PATCH", fmt.Sprintf("/api/rest/v1/events-api/subscriptions/%s", connectionCode), subscription)
+	_, err := c.request("PATCH", fmt.Sprintf("/api/v1/subscriptions/%s", connectionCode), subscription)
 	return err
 }
 
 func (c *Client) DeleteSubscription(connectionCode string) error {
-	_, err := c.request("DELETE", fmt.Sprintf("/api/rest/v1/events-api/subscriptions/%s", connectionCode), nil)
+	_, err := c.request("DELETE", fmt.Sprintf("/api/v1/subscriptions/%s", connectionCode), nil)
 	return err
 }
 
-func (c *Client) GetEventTypes() ([]string, error) {
-	data, err := c.request("GET", "/api/rest/v1/events-api/event-types", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var result []string
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, err
-	}
-	return result, nil
+func (c *Client) GetEventTypes() []string {
+	return GetEventTypes()
 }

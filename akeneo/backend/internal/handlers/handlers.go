@@ -100,10 +100,6 @@ func (h *Handler) DeleteSubscription(c *gin.Context) {
 }
 
 func (h *Handler) GetEventTypes(c *gin.Context) {
-	eventTypes, err := h.client.GetEventTypes()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	eventTypes := h.client.GetEventTypes()
 	c.JSON(http.StatusOK, eventTypes)
 }

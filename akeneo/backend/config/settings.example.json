@@ -1,0 +1,16 @@
+{
+  "akeneo": {
+    "base_url": "https://your-akeneo-instance.com",
+    "client_id": "your_client_id",
+    "client_secret": "your_client_secret",
+    "username": "your_username",
+    "password": "your_password"
+  },
+  "server": {
+    "port": "8080",
+    "gin_mode": "debug"
+  },
+  "cors": {
+    "allowed_origins": "http://localhost:3000"
+  }
+}
